@@ -3,6 +3,8 @@
 import logging
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter
 from tfatool import config, command, cgi, info
+from tfatool.info import AuthMode
+from tfatool.connection import Connection, DEFAULT_CONNECTION
 from requests import RequestException
 
 
@@ -48,12 +50,23 @@ show.add_argument("--show-mac", action="store_true")
 show.add_argument("--show-fw-version", action="store_true")
 show.add_argument("--show-wifi-mode", action="store_true")
 
+connection = parser.add_argument_group("Connection")
+connection.add_argument("-a", "--auth", choices=[mode.name for mode in AuthMode], default=DEFAULT_CONNECTION.auth.name, help="FlashAir web server authentication mode (default if user/password specified: basic)")
+connection.add_argument("-u", "--user", default=DEFAULT_CONNECTION.user,
+                   help="FlashAir web server username, if required (HTTPDUSER)")
+connection.add_argument("-p", "--password", default=DEFAULT_CONNECTION.password,
+                      help="FlashAir web server password, if required (HTTPDPASS)")
+connection.add_argument("url", nargs="?", default=DEFAULT_CONNECTION.url,
+   help="Base URL of the FlashAir web server (default: {})".format(
+   DEFAULT_CONNECTION.url))
 
 def run():
     args = parser.parse_args()
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
 
+    connection = Connection(url=args.url, user=args.user, password=args.password, auth_name=args.auth)
+    
     params = ((param, getattr(args, param.name))
               for param in config.Config
               if getattr(args, param.name) not in (False, None))
@@ -72,20 +85,20 @@ def run():
     cgi_params = config.config(params)
     if len(list(cgi_params.keys())) > 1:
         logger.info("CGI params: {}".format(cgi_params))
-        response = config.post(cgi_params)
+        response = config.post(cgi_params, connection=connection)
         logger.info("Response: {}".format(response.status_code))
 
     # show config params with a GET
     if args.show_wifi_ssid:
-        print("SSID: {}".format(command.get_ssid()))
+        print("SSID: {}".format(command.get_ssid(connection=connection)))
     if args.show_wifi_key:
-        print("WiFi key: {}".format(command.get_password()))
+        print("WiFi key: {}".format(command.get_password(connection=connection)))
     if args.show_mac:
-        print("MAC address: {}".format(command.get_mac()))
+        print("MAC address: {}".format(command.get_mac(connection=connection)))
     if args.show_fw_version:
-        print("Firmware version: {}".format(command.get_fw_version()))
+        print("Firmware version: {}".format(command.get_fw_version(connection=connection)))
     if args.show_wifi_mode:
-        mode = command.get_wifi_mode()
+        mode = command.get_wifi_mode(connection=connection)
         print("WiFi mode: {} ({:d})".format(mode.name, mode.value))
 
 if __name__ == "__main__":
