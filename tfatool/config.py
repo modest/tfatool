@@ -1,8 +1,9 @@
 import logging
 from functools import partial
 from . import cgi
-from .info import URL, DEFAULT_MASTERCODE
+from .info import DEFAULT_MASTERCODE
 from .info import WifiMode, WifiModeOnBoot, ModeValue, DriveMode, Config
+from .connection import DEFAULT_CONNECTION
 
 
 def config(param_map, mastercode=DEFAULT_MASTERCODE):
@@ -21,10 +22,10 @@ def _process_params(params):
         yield param.value, value_validators[param](value)
 
 
-def post(param_map, url=URL):
+def post(param_map, connection=DEFAULT_CONNECTION):
     """Posts a `param_map` created with `config` to
     the FlashAir config.cgi entrypoint"""
-    prepped_request = _prep_post(url=url, **param_map)
+    prepped_request = _prep_post(connection=connection, **param_map)
     return cgi.send(prepped_request)
 
 

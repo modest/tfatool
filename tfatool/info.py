@@ -69,6 +69,12 @@ class DriveMode(ModeValue):
     upload = 2  # enabled, read AND write allowed
 
 
+class AuthMode(ModeValue):
+    none = 0
+    basic = 1
+    digest = 2
+    
+
 class Upload(str, Enum):
     """Parameter names for upload.cgi"""
     delete = "DEL"

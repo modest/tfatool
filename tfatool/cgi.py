@@ -3,7 +3,8 @@ import requests
 from functools import partial
 from enum import Enum
 from urllib.parse import urljoin
-from .info import URL
+from .connection import DEFAULT_CONNECTION
+from .info import AuthMode
 
 
 logger = logging.getLogger(__name__)
@@ -22,18 +23,20 @@ class Entrypoint(str, Enum):
 # If we just use requests.get and requests.post functions,
 # the URL construction is done behind the scenes and we can't test it
 
-def request(method, entrypoint: Entrypoint, url=URL,
+def request(method, entrypoint: Entrypoint, connection=DEFAULT_CONNECTION,
             req_kwargs=None, send_kwargs=None, **params):
-    prepared_req = prep_request(method, entrypoint, url=url,
+    prepared_req = prep_request(method, entrypoint, connection,
                                 req_kwargs=req_kwargs, **params)
     send_kwargs = send_kwargs or {}
     return send(prepared_request, **send_kwargs)
 
 
-def prep_request(method, entrypoint, url=URL, req_kwargs=None, **params):
-    resource = urljoin(url, entrypoint)
+def prep_request(method, entrypoint, connection=DEFAULT_CONNECTION, 
+                 req_kwargs=None, **params):
+    resource = urljoin(connection.url, entrypoint)
     req_kwargs = req_kwargs or {}
-    request = requests.Request(method, resource, params=params, **req_kwargs)
+    
+    request = requests.Request(method, resource, auth=connection.auth_object, params=params, **req_kwargs)
     prepped = session.prepare_request(request)
     logger.debug("Request: {}".format(prepped.url))
     return prepped
